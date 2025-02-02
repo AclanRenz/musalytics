@@ -1,75 +1,96 @@
 <template>
-    <nav class="bg-white shadow">
-      <div class="container mx-auto px-4">
-        <div class="flex justify-between h-16">
-          <div class="flex items-center">
-            <!-- Logo -->
-            <router-link to="/" class="flex-shrink-0 flex items-center">
-              <h1 class="text-xl font-bold text-gray-800">Your App</h1>
+  <nav class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex">
+          <router-link 
+            to="/" 
+            class="flex-shrink-0 flex items-center text-xl font-bold text-gray-900"
+          >
+            Your App
+          </router-link>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+          <template v-if="authStore.isAuthenticated">
+            <router-link 
+              to="/dashboard"
+              class="text-gray-700 hover:text-gray-900"
+              active-class="text-primary-600"
+            >
+              Dashboard
             </router-link>
             
-            <!-- Navigation Links -->
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <router-link 
-                v-for="item in navigationItems" 
-                :key="item.path"
-                :to="item.path"
-                class="text-gray-900 hover:text-gray-500 px-3 py-2 rounded-md text-sm font-medium"
-                active-class="text-primary-600"
-              >
-                {{ item.name }}
-              </router-link>
+            <div class="flex items-center space-x-2">
+              <img 
+                v-if="authStore.user?.photoURL"
+                :src="authStore.user.photoURL"
+                :alt="authStore.user.displayName"
+                class="h-8 w-8 rounded-full"
+              />
+              <span class="text-sm text-gray-700">
+                {{ authStore.user?.displayName || authStore.user?.email }}
+              </span>
             </div>
-          </div>
-  
-          <!-- User Menu -->
-          <div class="flex items-center">
-            <button 
-              v-if="!isAuthenticated" 
-              @click="login"
-              class="bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700"
+            
+            <button
+              @click="handleLogout"
+              :disabled="loading"
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
             >
-              Login
+              <ArrowRightOnRectangleIcon 
+                v-if="!loading"
+                class="h-4 w-4 mr-2"
+              />
+              <ArrowPathIcon
+                v-else
+                class="animate-spin h-4 w-4 mr-2"
+              />
+              {{ loading ? 'Logging out...' : 'Logout' }}
             </button>
-            <div v-else class="relative ml-3">
-              <button 
-                @click="logout"
-                class="text-gray-900 hover:text-gray-500 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
+          </template>
+          
+          <template v-else>
+            <router-link 
+              to="/login"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Sign In
+            </router-link>
+            <router-link 
+              to="/register"
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Create Account
+            </router-link>
+          </template>
         </div>
       </div>
-    </nav>
-  </template>
+    </div>
+  </nav>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
+import { ArrowRightOnRectangleIcon, ArrowPathIcon } from '@heroicons/vue/24/outline';
+
+const router = useRouter();
+const authStore = useAuthStore();
+const loading = ref(false);
+
+const handleLogout = async () => {
+  if (loading.value) return;
   
-  <script setup>
-  import { ref } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { auth } from '../config/firebase'
-  import { signOut } from 'firebase/auth'
-  
-  const router = useRouter()
-  const isAuthenticated = ref(false)
-  
-  const navigationItems = [
-    { name: 'Home', path: '/' },
-    { name: 'About', path: '/about' },
-    { name: 'Dashboard', path: '/dashboard' },
-  ]
-  
-  const login = () => {
-    router.push('/login')
+  loading.value = true;
+  try {
+    await authStore.logout();
+    router.push('/login');
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    loading.value = false;
   }
-  
-  const logout = async () => {
-    try {
-      await signOut(auth)
-      router.push('/login')
-    } catch (error) {
-      console.error('Logout error:', error)
-    }
-  }
-  </script>
+};
+</script>

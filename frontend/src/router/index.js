@@ -7,38 +7,48 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('../views/HomeView.vue')
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: () => import('../views/RegisterView.vue')
+      component: () => import('../views/Home.vue')
     },
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/LoginView.vue')
+      component: () => import('../views/Login.vue')
     },
     {
-      path: '/verify-email',
-      name: 'verify-email',
-      component: () => import('../views/VerifyEmailView.vue')
+      path: '/register',
+      name: 'register',
+      component: () => import('../views/Register.vue')
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('../views/ForgotPassword.vue')
     },
     {
       path: '/dashboard',
       name: 'dashboard',
-      component: () => import('../views/DashboardView.vue'),
+      component: () => import('../views/Dashboard.vue'),
       meta: { requiresAuth: true }
     }
   ]
 });
 
-router.beforeEach((to, from, next) => {
+// Navigation guard
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  
+  // Wait for auth to initialize
+  if (!authStore.initialized) {
+    await authStore.init();
+  }
 
-  if (requiresAuth && !authStore.isAuthenticated) {
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login');
+  } else if (
+    (to.path === '/login' || to.path === '/register') && 
+    authStore.isAuthenticated
+  ) {
+    next('/dashboard');
   } else {
     next();
   }
